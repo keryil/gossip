@@ -1,4 +1,6 @@
 import re
+
+
 class DotDict(dict):
     """
     A dictionary that supports configuration.key type of access.
@@ -25,6 +27,7 @@ class DotDict(dict):
         ...
     Exception: You cannot use keys that start with integers.
     """
+
     def __init__(self, *args, **kwargs):
         super(DotDict, self).__init__(*args, **kwargs)
 
@@ -53,3 +56,7 @@ class DotDict(dict):
             raise Exception("You cannot use keys that start with integers.")
         else:
             dict.__setitem__(self, key, value)
+
+
+server_protocol = DotDict()
+client_protocol = DotDict()

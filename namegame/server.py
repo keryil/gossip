@@ -1,14 +1,18 @@
 # install_twisted_rector must be called before importing  and using the reactor
 from kivy.support import install_twisted_reactor
+from namegame.message import Message
+
 install_twisted_reactor()
 
 
 from twisted.internet import reactor
 from twisted.internet import protocol
-
+from jsonpickle import encode, decode
 
 class Server(protocol.Protocol):
     def dataReceived(self, data):
+        data = decode(data)
+        assert isinstance(data, Message)
         response = self.factory.app.handle_message(data)
         if response:
             self.transport.write(response)
@@ -33,13 +37,7 @@ class GossipServerApp(App):
 
     def handle_message(self, msg):
         self.label.text = "received:  %s\n" % msg
-
-        if msg == "ping":
-            msg = "pong"
-        if msg == "plop":
-            msg = "kivy rocks"
-        self.label.text += "responded: %s\n" % msg
-        return msg
+        return encode(msg)
 
 
 if __name__ == '__main__':

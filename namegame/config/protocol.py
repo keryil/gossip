@@ -1,3 +1,0 @@
-# session statuses
-
-READY = "Ready"

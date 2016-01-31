@@ -1,10 +1,13 @@
 #install_twisted_rector must be called before importing the reactor
 from kivy.support import install_twisted_reactor
+
 install_twisted_reactor()
 
 
 #A simple Client that send messages to the echo server
 from twisted.internet import reactor, protocol
+from jsonpickle import encode, decode
+from namegame.message import Message
 
 
 class Client(protocol.Protocol):
@@ -12,6 +15,8 @@ class Client(protocol.Protocol):
         self.factory.app.on_connection(self.transport)
 
     def dataReceived(self, data):
+        data = decode(data)
+        assert isinstance(data, Message)
         self.factory.app.print_message(data)
 
 
@@ -62,13 +67,13 @@ class TwistedClientApp(App):
         self.connection = connection
 
     def send_message(self, *args):
-        msg = self.textbox.text
+        msg = Message(str(self.textbox.text))
         if msg and self.connection:
-            self.connection.write(str(self.textbox.text))
+            self.connection.write(encode(msg))
             self.textbox.text = ""
 
     def print_message(self, msg):
-        self.label.text += msg + "\n"
+        self.label.text += str(msg) + "\n"
 
 if __name__ == '__main__':
     TwistedClientApp().run()
