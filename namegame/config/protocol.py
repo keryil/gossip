@@ -1,0 +1,3 @@
+# session statuses
+
+READY = "Ready"

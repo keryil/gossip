@@ -7,7 +7,7 @@ install_twisted_reactor()
 from twisted.internet import reactor, protocol
 
 
-class EchoClient(protocol.Protocol):
+class Client(protocol.Protocol):
     def connectionMade(self):
         self.factory.app.on_connection(self.transport)
 
@@ -15,8 +15,8 @@ class EchoClient(protocol.Protocol):
         self.factory.app.print_message(data)
 
 
-class EchoFactory(protocol.ClientFactory):
-    protocol = EchoClient
+class Factory(protocol.ClientFactory):
+    protocol = Client
 
     def __init__(self, app):
         self.app = app
@@ -55,7 +55,7 @@ class TwistedClientApp(App):
         return self.layout
 
     def connect_to_server(self):
-        reactor.connectTCP('localhost', 8000, EchoFactory(self))
+        reactor.connectTCP('localhost', 8000, Factory(self))
 
     def on_connection(self, connection):
         self.print_message("connected succesfully!")
