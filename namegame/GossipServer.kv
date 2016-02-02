@@ -1,0 +1,67 @@
+#:kivy 1.0.9
+#: import sm kivy.uix.screenmanager
+#: import gfx kivy.graphics
+
+<ServerWidget>:
+# this is the rule for your root widget, defining it's look and feel.
+    action_bar: _action
+    manager: manager
+    #These are the auto provided ActionBar and Carousel, change them according
+    #to your needs
+    ActionBar:
+        id: _action
+        size_hint: 1,0.1
+        pos_hint: {'top':1}
+        ActionView:
+            use_separator: True
+            ActionPrevious:
+                id: prevtitle
+                title: 'Gossip Server'
+                with_previous: True
+                on_release:
+                    manager.current = 'Main'
+                    manager.transition.direction = 'right'
+                    self.title = "Gossip Server"
+            ActionOverflow:
+                split_str: ''
+                disabled: True
+            ActionButton:
+                split_str: ''
+                text: 'Go To Sessions'
+                on_release:
+                    manager.current = 'Sessions'
+                    prevtitle.title = "Session list"
+            ActionButton:
+                text: 'Go To Client List'
+                on_release:
+                    manager.current = 'ClientList'
+                    prevtitle.title = "Client list"
+
+    ScreenManager:
+        id: manager
+        pos_hint: {'top': 0.9}
+        transition: sm.FadeTransition()
+        Screen:
+            name: "Main"
+            Label:
+                split_str: ''
+                text: 'Main screen'
+        Screen:
+            name: "Sessions"
+            Label:
+                text: 'Sessions'
+        Screen:
+            name: "ClientList"
+            Label:
+                text: 'Client list'
+    Label:
+        id: status
+        canvas.before:
+            Color:
+                rgba: .7, .7, 0, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        pos_hint: {'x':0, 'y':0}
+        size_hint: 1, .1
+        text: "status"
