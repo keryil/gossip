@@ -25,25 +25,12 @@ class Server(LineReceiver):
         super(Server, self).__init__(*args, **kwargs)
         self.factory = factory
         self.setLineMode()
-        # self.delimiter = config.DELIMITER
-        self.connect_callbacks = []
-        self.disconnect_callbacks = []
-
-    def addConnectCallback(self, callable):
-        self.connect_callbacks.append(callable)
-
-    def addDisconnectCallback(self, callable):
-        self.disconnect_callbacks(callable)
 
     def connectionMade(self):
-        self.factory.clients.inv[self] = None
-        for callback in self.connect_callbacks:
-            callback()
+        self.factory.on_connection_made(self)
 
     def connectionLost(self, reason=connectionDone):
-        for callback in self.disconnect_callbacks:
-            callback(reason)
-        del self.factory.clients.inv[self]
+        self.factory.on_connection_closed(self, reason)
 
     def lineReceived(self, data):
         data = msgpack.unpackb(data, ext_hook=decode_message)
@@ -57,9 +44,27 @@ class Factory(protocol.ServerFactory):
     protocol = Server
     # client_id <-> connection mapping
     clients = bidict()
+    connect_callbacks = []
+    disconnect_callbacks = []
 
     def __init__(self, app):
         self.app = app
+
+    def addConnectCallback(self, callable):
+        self.connect_callbacks.append(callable)
+
+    def addDisconnectCallback(self, callable):
+        self.disconnect_callbacks.append(callable)
+
+    def on_connection_made(self, connection):
+        self.clients.inv[connection] = None
+        for callback in self.connect_callbacks:
+            callback(connection)
+
+    def on_connection_closed(self, connection, reason):
+        for callback in self.disconnect_callbacks:
+            callback(connection, reason)
+        del self.clients.inv[connection]
 
     def buildProtocol(self, addr):
         return Server(self)
@@ -76,70 +81,39 @@ class ServerWidget(FloatLayout):
     cont2 = ObjectProperty(None)
     action_bar = ObjectProperty(None)
     manager = ObjectProperty(None)
+    status = ObjectProperty(None)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # self.contextualViewSessions = actionbar.ContextualActionView(
-        #     action_previous=actionbar.ActionPrevious(title='Sessions'))
-        # self.contextualViewClients = actionbar.ContextualActionView(
-        #     action_previous=actionbar.ActionPrevious(title='Clients'))
 
-        # def go_home(*args):
-        #     self.manager.current = "Main"
-        #     Logger.info("Went home.")
-        # self.action_bar.bind(on_previous=self.on_previous)
-        # self.prev_index = 0
-        # self.from_actionbar = False
+    def on_client_connect(self, connection):
+        self.set_status("New connection: {}".format(connection))
 
-        # def on_index(self, instance, value):
-        #     if value == 2:
-        #         # self.action_bar.add_widget(self.contextualView)
-        #         pass
-        #     elif value == 1:
-        #         if self.prev_index == 0:
-        #             # self.action_bar.add_widget(self.contextualView)
-        #             pass
-        #         elif not self.from_actionbar:
-        #             try:
-        #                 self.action_bar.on_previous()
-        #             except:
-        #                 pass
-        #
-        #         # elif self.from_actionbar:
-        #         #     self.carousel.index = 0
-        #         #     value = 0
-        #
-        #     elif self.from_actionbar is False:
-        #             try:
-        #                 self.action_bar.on_previous()
-        #             except:
-        #                 pass
-        #
-        #     self.prev_index = value
-        #     self.from_actionbar = False
-        #
-        # def on_previous(self, *args):
-        #     self.manager.screent =
-        #     # self.from_actionbar = True
-        #     # self.sm.index = 0
+    def on_client_disconnect(self, connection, reason):
+        self.set_status("{} disonnected. Why: {}".format(connection, reason))
+
+    def set_status(self, msg):
+        self.status.text = msg
 
     def handle_message(self, msg, protocol):
         Logger.info("Received: {}".format(msg))
-        self.label.text = "received:  %s\n" % msg
+        self.set_status("received:  %s\n" % msg)
         return msg
 
 
 class GossipServerApp(App):
+    factory = None
+
     def build(self):
-        # self.label = Label(text="server started\n")
-        reactor.listenTCP(config.SERVER_PORT, Factory(self))
-        return ServerWidget()
-        # return self.label
+        self.factory = Factory(self)
+        root = ServerWidget()
+        self.factory.addConnectCallback(root.on_client_connect)
+        self.factory.addDisconnectCallback(root.on_client_disconnect)
+        reactor.listenTCP(config.SERVER_PORT, self.factory)
+        return root
 
     def handle_message(self, msg, protocol):
-        Logger.info("Received: {}".format(msg))
-        self.label.text = "received:  %s\n" % msg
-        return msg
+        return self.root.handle_message(msg, protocol)
 
 
 if __name__ == '__main__':

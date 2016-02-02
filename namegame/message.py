@@ -15,7 +15,7 @@ class Message(object):
     @classmethod
     def FromString(cls, string):
         matches = re.search("(\w+)\((.+?)\)", string).groups()
-        assert matches[0] == cls.__name__
+        assert matches[0] == cls.__name__.split('.')[-1]
         data = cls.data_constructor(matches[1])
         return cls(data)
 
